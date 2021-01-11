@@ -3,7 +3,43 @@
 
 # jobgroup
 
-## TODO
+To manage a group of goroutines, it's possible to use an instance of `context.Context`. And to wait for them to finish, it's possible to use an instance of `sync.WaitGroup`. The `jobgroup` provides a utility, which combines these functionalities, under a simple API.
 
-> better README
-> a registry for a group of goroutines, using one context, and wait for all of them to finish
+## example usage
+
+Assume a set of jobs need to be finished inside a time-window. For this purpose a context can be used.
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), delay)
+defer cancel()
+```
+
+Then, using that context, we create a job-group.
+
+```go
+grp := jobgroup.New(ctx)
+```
+
+Each goroutine can be registered in this job-group.
+
+```go
+grp.Go(func(ctx context.Context) {
+    // ...
+    // cancel this job if the context is canceled/timeout
+    // <-ctx.Done()
+})
+```
+
+And then we wait for them to finish.
+
+```go
+grp.Wait()
+```
+
+Also, it's possible to wait for them to finish for limited duration of time.
+
+```go
+err := grp.Wait(time.Second * 5)
+```
+
+The returned `err` will be nil, if all jobs are finished. Or `jobgroup.ErrTimeout` if any job fails to stop after five seconds of waiting.
